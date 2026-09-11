@@ -1,0 +1,4 @@
+@import "tailwindcss";
+
+html { min-width: 320px; background: #f4f5ef; }
+#root { min-height: 100vh; }
