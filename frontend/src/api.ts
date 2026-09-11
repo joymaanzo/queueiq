@@ -72,6 +72,11 @@ interface ApiError {
   code?: string
 }
 
+export interface ApiRequestError extends Error {
+  status: number
+  code?: string
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: { 'Content-Type': 'application/json' },
@@ -79,7 +84,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   })
   if (!response.ok) {
     const error = (await response.json().catch(() => ({}))) as ApiError
-    throw new Error(error.detail || `Request failed (${response.status})`)
+    const requestError = new Error(
+      error.detail || `Request failed (${response.status})`,
+    ) as ApiRequestError
+    requestError.status = response.status
+    requestError.code = error.code
+    throw requestError
   }
   return (await response.json()) as T
 }
