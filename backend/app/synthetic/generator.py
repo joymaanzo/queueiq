@@ -107,23 +107,28 @@ def _events_for_clinic(
     return events
 
 
-def generate_synthetic_data() -> dict[str, int]:
-    """Generate events once for each clinic and return inserted counts."""
+def generate_all(session) -> dict[str, int]:
+    """Generate events for every clinic in the supplied session."""
     rng = np.random.default_rng(SEED)
     start_date = datetime(2025, 1, 6)
     counts = {}
+    clinics = session.query(Clinic).order_by(Clinic.clinic_id).all()
+    for clinic in clinics:
+        if session.query(QueueEvent).filter(QueueEvent.clinic_id == clinic.clinic_id).first():
+            counts[clinic.name] = 0
+            continue
+        events = _events_for_clinic(clinic, rng, start_date)
+        session.add_all(events)
+        counts[clinic.name] = len(events)
+    session.commit()
+    return counts
+
+
+def generate_synthetic_data() -> dict[str, int]:
+    """Generate events once for each clinic and return inserted counts."""
     db = SessionLocal()
     try:
-        clinics = db.query(Clinic).order_by(Clinic.clinic_id).all()
-        for clinic in clinics:
-            if db.query(QueueEvent).filter(QueueEvent.clinic_id == clinic.clinic_id).first():
-                counts[clinic.name] = 0
-                continue
-            events = _events_for_clinic(clinic, rng, start_date)
-            db.add_all(events)
-            counts[clinic.name] = len(events)
-        db.commit()
-        return counts
+        return generate_all(db)
     except Exception:
         db.rollback()
         raise

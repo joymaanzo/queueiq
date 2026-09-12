@@ -55,6 +55,13 @@ def _get_clinic(db, clinic_id: int):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    from app.seed import seed_if_empty
+
+    db = SessionLocal()
+    try:
+        seed_if_empty(db)
+    finally:
+        db.close()
     yield
 
 
