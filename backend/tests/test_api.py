@@ -119,3 +119,29 @@ def test_forecast_endpoint():
     forecast = response.json()["forecast"]
     assert len(forecast) == 3
     assert [entry["hours_ahead"] for entry in forecast] == [1, 2, 4]
+
+
+def test_evaluation_endpoint():
+    response = client.get("/clinic/1/evaluation")
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body) == {
+        "clinic_id",
+        "predictions_with_actuals",
+        "model_mae",
+        "baseline_mae",
+        "improvement_pct",
+        "interval_coverage",
+        "interval_level",
+        "events_evaluated",
+    }
+    assert body["clinic_id"] == 1
+    assert body["events_evaluated"] <= 50
+    assert 0.0 <= body["interval_coverage"] <= 1.0
+    assert body["interval_level"] == 0.8
+
+
+def test_evaluation_clinic_not_found():
+    response = client.get("/clinic/999/evaluation")
+    assert response.status_code == 404
+    assert response.json()["code"] == "CLINIC_NOT_FOUND"

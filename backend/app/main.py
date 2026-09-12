@@ -16,11 +16,13 @@ from sqlalchemy import func
 from app.bayesian.posterior import fit_arrival_posteriors
 from app.bayesian.predict import predict_wait
 from app.database import Base, engine, SessionLocal
+from app.evaluation.metrics import evaluation_summary
 from app.models import Clinic, Prediction, QueueEvent
 from app.schemas import (
     ClinicResponse,
     DailyStat,
     ErrorResponse,
+    EvaluationResponse,
     ForecastEntry,
     ForecastResponse,
     HourlyStat,
@@ -271,5 +273,15 @@ def clinic_forecast(clinic_id: int):
                 )
             )
         return ForecastResponse(clinic_id=clinic_id, forecast=forecast)
+    finally:
+        db.close()
+
+
+@app.get("/clinic/{clinic_id}/evaluation", response_model=EvaluationResponse)
+def clinic_evaluation(clinic_id: int):
+    db = SessionLocal()
+    try:
+        _get_clinic(db, clinic_id)
+        return evaluation_summary(clinic_id, db)
     finally:
         db.close()

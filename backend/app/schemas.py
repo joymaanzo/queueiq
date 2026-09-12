@@ -73,6 +73,17 @@ class ForecastResponse(BaseModel):
     forecast: List[ForecastEntry]
 
 
+class EvaluationResponse(BaseModel):
+    clinic_id: int
+    predictions_with_actuals: int
+    model_mae: float
+    baseline_mae: float
+    improvement_pct: float
+    interval_coverage: float
+    interval_level: float
+    events_evaluated: int
+
+
 class ErrorResponse(BaseModel):
     detail: str
     code: str

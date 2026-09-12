@@ -67,6 +67,17 @@ export interface ForecastResponse {
   forecast: ForecastEntry[]
 }
 
+export interface EvaluationResponse {
+  clinic_id: number
+  predictions_with_actuals: number
+  model_mae: number
+  baseline_mae: number
+  improvement_pct: number
+  interval_coverage: number
+  interval_level: number
+  events_evaluated: number
+}
+
 interface ApiError {
   detail?: string
   code?: string
@@ -120,4 +131,8 @@ export function getClinicStats(clinicId: number): Promise<StatsResponse> {
 
 export function getClinicForecast(clinicId: number): Promise<ForecastResponse> {
   return request<ForecastResponse>(`/clinic/${clinicId}/forecast`)
+}
+
+export function getEvaluation(clinicId: number): Promise<EvaluationResponse> {
+  return request<EvaluationResponse>(`/clinic/${clinicId}/evaluation`)
 }
