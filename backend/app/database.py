@@ -1,8 +1,6 @@
-"""
-SQLAlchemy database setup for QueueIQ.
-Uses SQLite for Module 2. Persists at backend/data/queueiq.db.
-"""
+"""SQLAlchemy database setup for QueueIQ."""
 
+import os
 from pathlib import Path
 
 from sqlalchemy import create_engine
@@ -13,12 +11,15 @@ DATA_DIR = BACKEND_DIR / "data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 DB_PATH = DATA_DIR / "queueiq.db"
-DATABASE_URL = f"sqlite:///{DB_PATH}"
+DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DB_PATH}")
+
+engine_options = {"echo": False}
+if DATABASE_URL.startswith("sqlite"):
+    engine_options["connect_args"] = {"check_same_thread": False}
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    echo=False,
+    **engine_options,
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

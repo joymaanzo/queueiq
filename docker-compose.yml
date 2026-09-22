@@ -1,12 +1,31 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: queueiq
+      POSTGRES_PASSWORD: queueiq
+      POSTGRES_DB: queueiq
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U queueiq -d queueiq"]
+      start_period: 15s
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   backend:
     build: ./backend
     ports:
       - "8000:8000"
     volumes:
-      - queueiq_data:/app/data
+      - app_data:/app/data
     environment:
       - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql://queueiq:queueiq@postgres:5432/queueiq
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   frontend:
@@ -15,9 +34,12 @@ services:
     ports:
       - "5173:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_started
     restart: unless-stopped
 
 volumes:
-  queueiq_data:
-    name: queueiq_data
+  postgres_data:
+    name: queueiq_postgres_data
+  app_data:
+    name: queueiq_app_data

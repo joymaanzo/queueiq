@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: queueiq-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    branch: main
+    autoDeployTrigger: commit
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: queueiq-db
+          property: connectionString
+      - key: ENVIRONMENT
+        value: production
+      - key: PYTHONUNBUFFERED
+        value: '1'
+
+databases:
+  - name: queueiq-db
+    databaseName: queueiq
+    user: queueiq
+    plan: free

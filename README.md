@@ -13,8 +13,8 @@ QueueIQ is a Bayesian clinic queue prediction platform that estimates patient wa
                                                                |
                                                                v
                                                     +----------------------+
-                                                    | SQLite               |
-                                                    | queueiq.db           |
+                                                    | PostgreSQL 16        |
+                                                    | queueiq database     |
                                                     +----------------------+
 ```
 
@@ -28,7 +28,7 @@ docker-compose up --build
 - API docs: http://localhost:8000/docs
 - Frontend: http://localhost:5173
 
-Do not use `docker-compose down -v` during normal development; the named volume stores the SQLite database.
+Do not use `docker-compose down -v` during normal development; the named Postgres volume stores application data.
 
 ## Local Development (without Docker)
 
@@ -52,15 +52,26 @@ npm run dev
 
 ```bash
 cd backend && pytest -v
-cd frontend && npm run build
+cd frontend && npm test
+cd .. && npx playwright test tests/e2e/
 ```
+
+See [docs/testing.md](docs/testing.md) for the integration test setup.
+
+## Deployment
+
+QueueIQ deploys to Render.com using the managed Postgres database defined in `render.yaml`. Pushing to `main` runs CI and, after a successful merge, deploys automatically. The public URL is supplied by the Render service configuration.
+
+## CI/CD
+
+GitHub Actions runs backend tests, frontend checks, Docker Compose integration tests, and a Docker build in parallel. The deployment workflow starts only after CI succeeds on `main`, then runs a health smoke test against the Render service.
 
 ## Project Structure
 
 ```text
 backend/
   app/                 FastAPI application, Bayesian model, and evaluation
-  data/                SQLite database for local development
+  data/                Local SQLite database for development fallback
   scripts/              Synthetic data seeding scripts
   tests/                Backend tests
   Dockerfile
@@ -69,14 +80,14 @@ frontend/
   public/               Static assets
   Dockerfile
   nginx.conf
-docker-compose.yml     Backend and frontend services
+docker-compose.yml     Backend, frontend, and Postgres services
 ```
 
 ## Data
 
 - Synthetic only: 3 clinics, 30+ days, and 500+ events per clinic.
-- SQLite is stored at `backend/data/queueiq.db` locally or `/app/data/queueiq.db` in Docker.
-- Docker persistence is provided by the named volume `queueiq_data`.
+- SQLite is stored at `backend/data/queueiq.db` when `DATABASE_URL` is unset.
+- Docker persistence is provided by the named `postgres_data` volume.
 
 ## Module 2 Scope
 

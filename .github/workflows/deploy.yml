@@ -1,0 +1,31 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trigger Render deployment
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: test -n "$RENDER_DEPLOY_HOOK_URL" && curl --fail --silent --show-error -X POST "$RENDER_DEPLOY_HOOK_URL"
+      - name: Wait for Render deployment
+        env:
+          RENDER_SERVICE_URL: ${{ secrets.RENDER_SERVICE_URL }}
+        run: |
+          test -n "$RENDER_SERVICE_URL"
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error "$RENDER_SERVICE_URL/health"; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Render smoke test failed; the Render service must be rolled back to its previous deploy."
+          exit 1
