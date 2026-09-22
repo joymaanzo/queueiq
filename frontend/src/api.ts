@@ -1,15 +1,3 @@
-const API_BASE = (() => {
-  const envUrl = import.meta.env.VITE_API_URL
-  if (envUrl && envUrl !== 'http://localhost:8000') {
-    return envUrl
-  }
-  const host = window.location.hostname
-  if (host.includes('-5173.')) {
-    return `https://${host.replace('-5173.', '-8000.')}`
-  }
-  return 'http://localhost:8000'
-})()
-
 export interface Clinic {
   clinic_id: number
   name: string
@@ -99,7 +87,7 @@ export interface ApiRequestError extends Error {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(path, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   })
