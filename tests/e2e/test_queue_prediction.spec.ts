@@ -51,7 +51,10 @@ test('preserves predictions across a compose restart', async ({ page }) => {
 
   const { execFileSync } = await import('node:child_process')
   execFileSync('docker', ['compose', 'restart', 'backend'], { stdio: 'inherit' })
-  await expect.poll(async () => (await page.request.get(`${apiUrl}/health`)).status()).toBe(200)
+  await expect.poll(
+    async () => (await page.request.get(`${apiUrl}/health`)).status(),
+    { timeout: 10000 },
+  ).toBe(200)
 
   const persisted = execFileSync(
     'docker',
