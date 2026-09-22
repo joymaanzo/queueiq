@@ -6,11 +6,13 @@ Phase A: /health and /clinics only.
 
 from contextlib import asynccontextmanager
 from datetime import datetime
+import os
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func
 
 from app.bayesian.posterior import fit_arrival_posteriors
@@ -112,16 +114,6 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
             detail="Internal server error", code="INTERNAL_ERROR"
         ).model_dump(),
     )
-
-
-@app.get("/")
-def root():
-    return {
-        "name": "QueueIQ API",
-        "docs": "/docs",
-        "health": "/health",
-        "clinics": "/clinics",
-    }
 
 
 @app.get("/health")
@@ -292,3 +284,8 @@ def clinic_evaluation(clinic_id: int):
         return evaluation_summary(clinic_id, db)
     finally:
         db.close()
+
+
+static_path = os.path.join(os.path.dirname(__file__), "../static")
+if os.path.exists(static_path):
+    app.mount("/", StaticFiles(directory=static_path, html=True), name="static")
