@@ -86,6 +86,31 @@ export interface ApiRequestError extends Error {
   code?: string
 }
 
+async function fetchWithRetry<T>(
+  url: string,
+  maxRetries = 3,
+  delay = 1000,
+): Promise<T> {
+  for (let attempt = 0; attempt < maxRetries; attempt += 1) {
+    try {
+      const response = await fetch(url)
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      return (await response.json()) as T
+    } catch (error) {
+      if (attempt < maxRetries - 1) {
+        console.log(
+          `Fetch failed (attempt ${attempt + 1}/${maxRetries}), retrying in ${delay}ms...`,
+        )
+        await new Promise((resolve) => setTimeout(resolve, delay))
+      } else {
+        throw error
+      }
+    }
+  }
+
+  throw new Error('Fetch failed')
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     headers: { 'Content-Type': 'application/json' },
@@ -104,7 +129,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export function listClinics(): Promise<Clinic[]> {
-  return request<Clinic[]>('/clinics')
+  return fetchWithRetry<Clinic[]>('/clinics', 3, 500)
 }
 
 export function predictWait(req: PredictRequest): Promise<PredictResponse> {

@@ -6,6 +6,7 @@ Phase A: /health and /clinics only.
 
 from contextlib import asynccontextmanager
 from datetime import datetime
+import asyncio
 import os
 
 from fastapi import FastAPI, HTTPException, Request
@@ -13,7 +14,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import func
+from sqlalchemy import func, text
 
 from app.bayesian.posterior import fit_arrival_posteriors
 from app.bayesian.predict import predict_wait
@@ -56,6 +57,7 @@ def _get_clinic(db, clinic_id: int):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    await startup_event()
     Base.metadata.create_all(bind=engine)
     from app.seed import seed_if_empty
 
@@ -73,6 +75,31 @@ app = FastAPI(
     description="Bayesian clinic queue prediction platform (Module 2 MVP)",
     lifespan=lifespan,
 )
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Wait for database connection before accepting requests."""
+    max_retries = 30
+    retry_delay = 1  # seconds
+
+    for attempt in range(max_retries):
+        try:
+            with engine.begin() as conn:
+                conn.execute(text("SELECT 1"))
+            print("Database is ready")
+            return
+        except Exception:
+            if attempt < max_retries - 1:
+                print(
+                    f"Database not ready (attempt {attempt + 1}/{max_retries}), "
+                    f"retrying in {retry_delay}s..."
+                )
+                await asyncio.sleep(retry_delay)
+            else:
+                print("Database failed to connect after 30 attempts")
+                raise
+
 
 app.add_middleware(
     CORSMiddleware,
